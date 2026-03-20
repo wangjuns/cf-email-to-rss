@@ -17,10 +17,13 @@
 	 * D1 database for RSS items (supports time-ordered queries).
 	 * Create a D1 database in Wrangler and replace the `database_id` / `preview_database_id` values.
 	 */
-	,"d1_databases": [
+	,
+	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "newsletter-db",
+			"database_id": "2988858d-fdc5-43a5-9ac4-16faf2be2897",
+			"remote": true,
 			"migrations_dir": "./migrations"
 		}
 	]
