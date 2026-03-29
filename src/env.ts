@@ -10,6 +10,12 @@ declare global {
 		 * Example: "https://example.com"
 		 */
 		RSS_BASE_URL?: string;
+		/**
+		 * Comma-separated Telegraph access tokens for publishing long content.
+		 * Example: "token1,token2,token3"
+		 * Tokens are selected via deterministic round-robin based on item ID.
+		 */
+		TELEGRAPH_TOKENS?: string;
 	}
 }
 

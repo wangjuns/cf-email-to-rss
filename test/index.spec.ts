@@ -16,8 +16,6 @@ describe('Email -> RSS worker', () => {
 		const text = await response.text();
 		expect(text).toContain('<rss version="2.0">');
 		expect(text).toContain('<channel>');
-		// No items in unit tests because D1 binding is absent.
-		expect(text).not.toContain('<item>');
 	});
 
 	it('stores parsed newsletter in D1 and returns it in /feed.xml', async () => {

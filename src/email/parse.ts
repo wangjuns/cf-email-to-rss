@@ -21,6 +21,21 @@ function stripHtml(html: string): string {
 		.trim();
 }
 
+/**
+ * Clean HTML for RSS display — remove scripts, styles, and tracking noise,
+ * but keep structural/formatting tags so readers can render the original layout.
+ */
+function cleanHtml(html: string): string {
+	return html
+		.replace(/<script[\s\S]*?<\/script>/gi, '')
+		.replace(/<style[\s\S]*?<\/style>/gi, '')
+		.replace(/<head[\s\S]*?<\/head>/gi, '')
+		.replace(/<!--[\s\S]*?-->/g, '')
+		// Remove common newsletter tracking pixels (1×1 images)
+		.replace(/<img[^>]*(?:width\s*=\s*["']?1["']?\s+height\s*=\s*["']?1["']?|height\s*=\s*["']?1["']?\s+width\s*=\s*["']?1["']?)[^>]*\/?>/gi, '')
+		.trim();
+}
+
 function normalizeMessageId(id: string): string {
 	return id.trim().replace(/^<|>$/g, '');
 }
@@ -42,6 +57,11 @@ function pickDescription(email: Email): string | undefined {
 	return compact.slice(0, 2000);
 }
 
+function pickHtmlContent(email: Email): string | undefined {
+	if (!email.html) return;
+	return cleanHtml(email.html);
+}
+
 export async function parseNewsletterToRssItem(
 	message: ForwardableEmailMessage,
 	params: { baseUrl?: string },
@@ -57,6 +77,7 @@ export async function parseNewsletterToRssItem(
 	const pubDateSafe = Number.isNaN(pubDate.getTime()) ? new Date() : pubDate;
 
 	const description = pickDescription(parsed);
+	const htmlContent = pickHtmlContent(parsed);
 
 	const linkSource = [parsed.html, parsed.text].filter(Boolean).join('\n');
 	const extractedLink = linkSource ? extractFirstUrl(linkSource) : undefined;
@@ -64,7 +85,9 @@ export async function parseNewsletterToRssItem(
 
 	const messageId =
 		(parsed.messageId && normalizeMessageId(parsed.messageId)) ||
-		(message.headers.get('message-id') ? normalizeMessageId(message.headers.get('message-id') as string) : undefined);
+		(parsed.headers.find((h) => h.key === 'message-id')
+			? normalizeMessageId(parsed.headers.find((h) => h.key === 'message-id')!.value)
+			: undefined);
 
 	const idSeed =
 		messageId ??
@@ -83,6 +106,6 @@ export async function parseNewsletterToRssItem(
 		link,
 		pubDate: pubDateSafe,
 		description,
+		htmlContent,
 	};
 }
-

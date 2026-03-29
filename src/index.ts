@@ -14,9 +14,23 @@
 import { buildRssXml } from './rss';
 import { listRssItems, saveRssItem } from './storage';
 import { parseNewsletterToRssItem } from './email/parse';
+import {
+	isContentLong,
+	htmlToTelegraphNodes,
+	pickToken,
+	parseTokens,
+	createTelegraphPage,
+} from './telegraph';
 
 function feedTitle(env: Env, fallback: string): string {
 	return env.RSS_TITLE?.trim() || fallback;
+}
+
+function stripHtmlForLength(html: string): string {
+	return html
+		.replace(/<[^>]+>/g, '')
+		.replace(/\s+/g, ' ')
+		.trim();
 }
 
 export default {
@@ -53,6 +67,28 @@ export default {
 			const baseUrl = env.RSS_BASE_URL?.trim();
 			const item = await parseNewsletterToRssItem(message, { baseUrl });
 			if (!item) return;
+
+			// If content is long and Telegraph tokens are configured, publish to Telegraph
+			const telegraphTokensRaw = env.TELEGRAPH_TOKENS?.trim();
+			if (telegraphTokensRaw && item.htmlContent) {
+				const plainText = item.description ?? stripHtmlForLength(item.htmlContent);
+				if (isContentLong(plainText)) {
+					const tokens = parseTokens(telegraphTokensRaw);
+					if (tokens.length > 0) {
+						const token = pickToken(tokens, item.id);
+						const nodes = htmlToTelegraphNodes(item.htmlContent);
+						const telegraphUrl = await createTelegraphPage({
+							token,
+							title: item.title,
+							content: nodes,
+							authorName: message.from,
+						});
+						if (telegraphUrl) {
+							item.link = telegraphUrl;
+						}
+					}
+				}
+			}
 
 			await saveRssItem(env, { id: item.id, item });
 		} catch (err) {

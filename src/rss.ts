@@ -4,6 +4,8 @@ export type RssItem = {
 	link?: string;
 	pubDate: Date;
 	description?: string;
+	/** Cleaned HTML from the original email, preserving structure. */
+	htmlContent?: string;
 };
 
 function escapeXml(input: string): string {
@@ -37,7 +39,8 @@ export function buildRssXml(params: {
 			const itemTitle = escapeXml(item.title);
 			const itemLink = escapeXml(item.link ?? link);
 			const pubDateRfc822 = item.pubDate.toUTCString();
-			const desc = item.description ? cdata(item.description) : cdata('');
+			const descSource = item.htmlContent ?? item.description;
+			const desc = descSource ? cdata(descSource) : cdata('');
 
 			return [
 				'<item>',
